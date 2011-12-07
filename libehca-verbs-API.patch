@@ -1,0 +1,112 @@
+diff -uprN libehca-1.2.1.save/src/ehca_uclasses.h libehca-1.2.1/src/ehca_uclasses.h
+--- libehca-1.2.1.save/src/ehca_uclasses.h	2009-08-31 07:21:44.000000000 -0400
++++ libehca-1.2.1/src/ehca_uclasses.h	2009-12-21 22:43:39.980745234 -0500
+@@ -155,7 +155,7 @@ int ehcau_dealloc_pd(struct ibv_pd *pd);
+ 
+ struct ibv_mr *ehcau_reg_mr(struct ibv_pd *pd,
+ 			    void *addr,
+-			    size_t length, enum ibv_access_flags access);
++			    size_t length, int access);
+ 
+ int ehcau_dereg_mr(struct ibv_mr *mr);
+ 
+@@ -192,7 +192,7 @@ struct ibv_qp *ehcau_create_qp(struct ib
+ 			       struct ibv_qp_init_attr *attr);
+ 
+ int ehcau_modify_qp(struct ibv_qp *qp, struct ibv_qp_attr *attr,
+-		    enum ibv_qp_attr_mask attr_mask);
++		    int attr_mask);
+ 
+ int ehcau_destroy_qp(struct ibv_qp *qp);
+ 
+@@ -208,7 +208,7 @@ struct ibv_srq *ehcau_create_srq(struct 
+ 				 struct ibv_srq_init_attr *attr);
+ 
+ int ehcau_modify_srq(struct ibv_srq *srq, struct ibv_srq_attr *attr,
+-		     enum ibv_srq_attr_mask attr_mask);
++		     int attr_mask);
+ 
+ int ehcau_query_srq(struct ibv_srq *srq, struct ibv_srq_attr *srq_attr);
+ 
+@@ -233,12 +233,14 @@ int ehcau_req_notify_cq(struct ibv_cq *c
+ 
+ int ehcau_poll_cq(struct ibv_cq *cq, int num_entries, struct ibv_wc *wc);
+ 
+-int ehcau_attach_mcast(struct ibv_qp *qp, union ibv_gid *gid, uint16_t lid);
++int ehcau_attach_mcast(struct ibv_qp *qp, const union ibv_gid *gid,
++		       uint16_t lid);
+ 
+-int ehcau_detach_mcast(struct ibv_qp *qp, union ibv_gid *gid, uint16_t lid);
++int ehcau_detach_mcast(struct ibv_qp *qp, const union ibv_gid *gid,
++		       uint16_t lid);
+ 
+ int ehcau_query_qp(struct ibv_qp *qp, struct ibv_qp_attr *qp_attr,
+-		   enum ibv_qp_attr_mask attr_mask,
++		   int attr_mask,
+ 		   struct ibv_qp_init_attr* init_attr);
+ 
+ /*
+diff -uprN libehca-1.2.1.save/src/ehca_umain.c libehca-1.2.1/src/ehca_umain.c
+--- libehca-1.2.1.save/src/ehca_umain.c	2009-08-31 07:21:44.000000000 -0400
++++ libehca-1.2.1/src/ehca_umain.c	2009-12-21 22:47:04.090745296 -0500
+@@ -496,8 +496,7 @@ create_qp_exit0:
+ 	return NULL;
+ }
+ 
+-int ehcau_modify_qp(struct ibv_qp *qp, struct ibv_qp_attr *attr,
+-		    enum ibv_qp_attr_mask attr_mask)
++int ehcau_modify_qp(struct ibv_qp *qp, struct ibv_qp_attr *attr, int attr_mask)
+ {
+ 	int ret;
+ 	struct ibv_modify_qp cmd;
+@@ -654,7 +653,7 @@ create_srq_exit0:
+ }
+ 
+ int ehcau_modify_srq(struct ibv_srq *srq, struct ibv_srq_attr *attr,
+-		     enum ibv_srq_attr_mask attr_mask)
++		     int attr_mask)
+ {
+ 	int ret;
+ 	struct ibv_modify_srq cmd;
+@@ -856,7 +855,8 @@ int ehcau_destroy_ah(struct ibv_ah *ah)
+ 	return 0;
+ }
+ 
+-int ehcau_attach_mcast(struct ibv_qp *qp, union ibv_gid *gid, uint16_t lid)
++int ehcau_attach_mcast(struct ibv_qp *qp, const union ibv_gid *gid,
++		       uint16_t lid)
+ {
+ 	int ret;
+ 	struct ehcau_qp *my_qp;
+@@ -874,7 +874,8 @@ int ehcau_attach_mcast(struct ibv_qp *qp
+ 	return ret;
+ }
+ 
+-int ehcau_detach_mcast(struct ibv_qp *qp, union ibv_gid *gid, uint16_t lid)
++int ehcau_detach_mcast(struct ibv_qp *qp, const union ibv_gid *gid,
++		       uint16_t lid)
+ {
+ 	int ret;
+ 	struct ehcau_qp *my_qp;
+@@ -894,8 +895,7 @@ int ehcau_detach_mcast(struct ibv_qp *qp
+ 
+ 
+ int ehcau_query_qp(struct ibv_qp *qp, struct ibv_qp_attr *qp_attr,
+-		   enum ibv_qp_attr_mask attr_mask,
+-		   struct ibv_qp_init_attr* init_attr)
++		   int attr_mask, struct ibv_qp_init_attr* init_attr)
+ {
+ 	int ret;
+ 	struct ehcau_qp *my_qp;
+diff -uprN libehca-1.2.1.save/src/ehca_u_mrmw.c libehca-1.2.1/src/ehca_u_mrmw.c
+--- libehca-1.2.1.save/src/ehca_u_mrmw.c	2009-02-27 09:40:46.000000000 -0500
++++ libehca-1.2.1/src/ehca_u_mrmw.c	2009-12-21 22:44:34.148751215 -0500
+@@ -46,7 +46,7 @@
+ struct ibv_mr *ehcau_reg_mr(struct ibv_pd *pd,
+ 			    void *addr,
+ 			    size_t length,
+-			    enum ibv_access_flags access)
++			    int access)
+ {
+ 	int ret;
+ 	struct ibv_mr *mr;
